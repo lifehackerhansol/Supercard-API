@@ -39,7 +39,7 @@ extern uint8_t video_main_current;
 /* Indexing this array yields the palette to be used to display a given Main
  * Screen buffer. Elements are meaningful only if set_main_buffer_palette is
  * first called for the buffer with a value of true. */
-uint16_t video_main_palette[3][256];
+extern uint16_t video_main_palette[3][256];
 
 /* Sets the currently-displayed Main Screen buffer.
  * In:

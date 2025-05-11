@@ -27,7 +27,7 @@
 
 /* Current state of input on the DS. Used by requests.c to know when to stop
  * sleeping. */
-struct DS_InputState input;
+extern struct DS_InputState input;
 
 /* The following must be sorted in order of priority to be sent.
  * Bit 0 has the highest priority; bit 31 has the lowest. */
