@@ -1,8 +1,8 @@
-*.a
+build
 *.elf
+*.nds
+*.a
 *.o
-arm-side/arm-side.nds
-arm-side/build
 mips-side/toolsrc/packer/packer
 mips-side/toolsrc/unpacker/unpacker.dat
 mips-side/toolsrc/filter/filter

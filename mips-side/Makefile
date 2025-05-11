@@ -1,43 +1,39 @@
-ifeq ($(strip $(SCDS2_TOOLCHAIN)),)
-$(error "Please set SCDS2_TOOLCHAIN in your environment. export SCDS2_TOOLCHAIN=<path to scds2 toolchain>")
+export SCDS2_TOOLCHAIN			?= /opt/scds2_toolchain
+
+export WONDERFUL_TOOLCHAIN	?= /opt/wonderful
+MIPSEL_ELF_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-mipsel-elf/bin
+
+# Verbose flag
+# ------------
+
+ifeq ($(VERBOSE),1)
+V		:=
+else
+V		:= @
 endif
-ifeq ($(strip $(SCDS2_TOOLS)),)
-$(error "Please set SCDS2_TOOLS in your environment. export SCDS2_TOOLS=<path to scds2 tools>")
-endif
 
-.PHONY: all libsrc toolsrc clean install
+.PHONY: all libds2 clean install
 
-all: scds2_start.o libsrc toolsrc
+all: sys/crts/scds2_start.o libds2
 
-scds2_start.o: scds2_start.S
-	$(SCDS2_TOOLCHAIN)/bin/mipsel-scds2-elf-gcc -g -Iinclude -D__ASSEMBLY__ -c $< -o $@
+sys/crts/scds2_start.o: sys/crts/scds2_start.S
+	$(MIPSEL_ELF_PATH)/mipsel-elf-gcc -march=mips32 -x assembler-with-cpp -g -Iinclude -D__ASSEMBLY__ -c $< -o $@
 
-libsrc:
-	$(MAKE) -C libsrc
-
-toolsrc: libsrc
-	$(MAKE) -C toolsrc/unpacker
-	$(MAKE) -C toolsrc/packer
-	$(MAKE) -C toolsrc/unfilter
-	$(MAKE) -C toolsrc/filter
+libds2:
+	$(MAKE) -f Makefile.libds2
 
 install: all
-	cp -a scds2_start.S scds2_start.o scds2_rules scds2.specs scds2.ld Makefile $(SCDS2_TOOLS)
-	-rm -rf $(SCDS2_TOOLS)/include $(SCDS2_TOOLS)/libsrc $(SCDS2_TOOLS)/examples
-	cp -ar include libsrc examples $(SCDS2_TOOLS)
-	-mkdir $(SCDS2_TOOLS)/tools
-	cp -a tools/makeplug $(SCDS2_TOOLS)/tools
-	$(MAKE) -C libsrc install
-	$(MAKE) -C toolsrc/unpacker install
-	$(MAKE) -C toolsrc/packer install
-	$(MAKE) -C toolsrc/unfilter install
+	$(V)mkdir -p $(SCDS2_TOOLCHAIN)/sys/crts
+	$(V)cp -a sys/crts/scds2_start.S sys/crts/scds2_start.o sys/crts/scds2.specs sys/crts/scds2.ld $(SCDS2_TOOLCHAIN)/sys/crts
+	$(V)mkdir -p $(SCDS2_TOOLCHAIN)/tools/makeplug
+	$(V)cp -a tools/makeplug $(SCDS2_TOOLCHAIN)/tools/makeplug
 	$(MAKE) -C toolsrc/filter install
+	$(MAKE) -C toolsrc/packer install
+	$(MAKE) -f Makefile.libds2 install
 
 clean:
-	-rm scds2_start.o
-	-rm -rf lib
-	$(MAKE) -C libsrc clean
-	$(MAKE) -C toolsrc/unpacker clean
-	$(MAKE) -C toolsrc/packer clean
-	$(MAKE) -C toolsrc/unfilter clean
+	rm -rf build
+	rm -f sys/crts/scds2_start.o
 	$(MAKE) -C toolsrc/filter clean
+	$(MAKE) -C toolsrc/packer clean
+	$(MAKE) -f Makefile.libds2 clean

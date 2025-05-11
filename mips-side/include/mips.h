@@ -26,7 +26,7 @@
 #ifndef __MIPS_H__
 #define __MIPS_H__
 
-#include "archdefs.h"
+#include <archdefs.h>
 
 
 /* ********************************************************************* */
