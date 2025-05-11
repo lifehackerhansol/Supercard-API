@@ -1,53 +1,132 @@
-ifeq ($(strip $(SCDS2_TOOLS)),)
-$(error "Please set SCDS2_TOOLS in your environment. export SCDS2_TOOLS=<path to scds2 tools>")
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Antonio Niño Díaz, 2023-2025
+
+# Source code paths
+# -----------------
+
+SOURCEDIRS	:= source
+INCLUDEDIRS	:= source
+
+# Defines passed to all files
+# ---------------------------
+
+DEFINES		:=
+
+# Libraries
+# ---------
+
+LIBS		:=
+LIBDIRS		:=
+
+# Build artifacts
+# ---------------
+
+NAME		:= filter
+BUILDDIR	:= build
+ELF		:= $(NAME)
+
+# Tools
+# -----
+
+STRIP		:= -s
+BINMODE		:= 755
+
+HOSTCC		?= gcc
+HOSTCXX		?= g++
+CP		:= cp
+MKDIR		:= mkdir
+RM		:= rm -rf
+MAKE		:= make
+INSTALL		:= install
+
+# Verbose flag
+# ------------
+
+ifeq ($(VERBOSE),1)
+V		:=
+else
+V		:= @
 endif
 
-# Making this for the native host
-PREFIX         :=
+# Source files
+# ------------
 
-export CC      := $(PREFIX)gcc
-export LD      := $(PREFIX)gcc
-export AS      := $(PREFIX)as
-export AR      := $(PREFIX)ar
-export OBJCOPY := $(PREFIX)objcopy
-export STRIP   := $(PREFIX)strip
-export NM      := $(PREFIX)gcc-nm
-export RANLIB  := $(PREFIX)gcc-ranlib
+SOURCES_C	:= $(shell find -L $(SOURCEDIRS) -name "*.c")
+SOURCES_CPP	:= $(shell find -L $(SOURCEDIRS) -name "*.cpp")
 
-# Flags for compiling C code
-CFLAGS         +=
+# Compiler and linker flags
+# -------------------------
 
-# Linker flags
-LDFLAGS        +=
-LIBPATHS       +=
-LIBS           +=
+WARNFLAGS_C	:= -Wall -Wextra -Wstrict-prototypes
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+WARNFLAGS_CXX	:= -Wall -Wextra
 
-TARGET   := filter
+ifeq ($(SOURCES_CPP),)
+    HOSTLD	:= $(HOSTCC)
+else
+    HOSTLD	:= $(HOSTCXX)
+endif
 
-INCLUDES :=
+INCLUDEFLAGS	:= $(foreach path,$(INCLUDEDIRS),-I$(path)) \
+		   $(foreach path,$(LIBDIRS),-I$(path)/include)
 
-SOURCE_DIRS := .
+LIBDIRSFLAGS	:= $(foreach path,$(LIBDIRS),-L$(path)/lib)
 
-CFLAGS   += -Wall -O2 -fomit-frame-pointer -Wextra -Wpedantic --std=c99 \
-            $(INCLUDES)
+CFLAGS		+= -std=gnu11 $(WARNFLAGS_C) $(DEFINES) $(INCLUDEFLAGS) -O3
 
-CFILES   := $(foreach dir, $(SOURCE_DIRS), $(wildcard $(dir)/*.c))
+CXXFLAGS	+= -std=gnu++14 $(WARNFLAGS_CXX) $(DEFINES) $(INCLUDEFLAGS) -O3
 
-OBJECTS  := $(CFILES:.c=.o)
+LDFLAGS		:= $(LIBDIRSFLAGS) $(LIBS)
+
+# Intermediate build files
+# ------------------------
+
+OBJS		:= $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_C))) \
+		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_CPP)))
+
+DEPS		:= $(OBJS:.o=.d)
+
+# Targets
+# -------
 
 .PHONY: all clean install
 
-all: $(TARGET)
+all: $(ELF)
 
-$(TARGET): $(OBJECTS)
-	$(LD) $(LDFLAGS) $^ $(LIBPATHS) $(LIBS) -o $@
+$(ELF): $(OBJS)
+	@echo "  HOSTLD  $@"
+	$(V)$(HOSTLD) -o $@ $(OBJS) $(LDFLAGS)
 
 clean:
-	-rm -f $(TARGET) $(OBJECTS)
+	@echo "  CLEAN  "
+	$(V)$(RM) $(ELF) $(BUILDDIR)
+
+INSTALLDIR	?= /opt/scds2_toolchain/tools/filter
+INSTALLDIR_ABS	:= $(abspath $(INSTALLDIR))
 
 install: all
-	-mkdir $(SCDS2_TOOLS)/tools
-	cp $(TARGET) $(SCDS2_TOOLS)/tools
+	@echo "  INSTALL $(INSTALLDIR_ABS)"
+	@test $(INSTALLDIR_ABS)
+	$(V)$(RM) $(INSTALLDIR_ABS)
+	$(V)$(INSTALL) -d $(INSTALLDIR_ABS)
+	$(V)$(INSTALL) $(STRIP) -m $(BINMODE) $(NAME) $(INSTALLDIR_ABS)
+	$(V)$(CP) ./COPYING $(INSTALLDIR_ABS)
+
+# Rules
+# -----
+
+$(BUILDDIR)/%.c.o : %.c
+	@echo "  HOSTCC  $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(HOSTCC) $(CFLAGS) -MMD -MP -c -o $@ $<
+
+$(BUILDDIR)/%.cpp.o : %.cpp
+	@echo "  HOSTCXX $<"
+	@$(MKDIR) -p $(@D)
+	$(V)$(HOSTCXX) $(CXXFLAGS) -MMD -MP -c -o $@ $<
+
+# Include dependency files if they exist
+# --------------------------------------
+
+-include $(DEPS)

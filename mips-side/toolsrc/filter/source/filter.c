@@ -35,8 +35,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../common/filter_streams.h"
-#include "../common/filter_ops.h"
+#include "../../common/filter_streams.h"
+#include "../../common/filter_ops.h"
 
 #define ROUND_UP_4(n) (((n) + 3) & ~3)
 

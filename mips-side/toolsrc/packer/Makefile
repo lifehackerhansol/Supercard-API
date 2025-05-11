@@ -1,53 +1,47 @@
-ifeq ($(strip $(SCDS2_TOOLS)),)
-$(error "Please set SCDS2_TOOLS in your environment. export SCDS2_TOOLS=<path to scds2 tools>")
+# SPDX-License-Identifier: CC0-1.0
+#
+# SPDX-FileContributor: Antonio Niño Díaz, 2023-2024
+
+# Tools
+# -----
+
+STRIP		:= -s
+BINMODE		:= 755
+
+HOSTCC		?= gcc
+CP		:= cp
+RM		:= rm -rf
+INSTALL		:= install
+
+# Verbose flag
+# ------------
+
+ifeq ($(VERBOSE),1)
+V		:=
+else
+V		:= @
 endif
 
-# Making this for the native host
-PREFIX         :=
-
-export CC      := $(PREFIX)gcc
-export LD      := $(PREFIX)gcc
-export AS      := $(PREFIX)as
-export AR      := $(PREFIX)ar
-export OBJCOPY := $(PREFIX)objcopy
-export STRIP   := $(PREFIX)strip
-export NM      := $(PREFIX)gcc-nm
-export RANLIB  := $(PREFIX)gcc-ranlib
-
-# Flags for compiling C code
-CFLAGS         +=
-
-# Linker flags
-LDFLAGS        +=
-LIBPATHS       +=
-LIBS           += -lz
-
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-TARGET   := packer
-
-INCLUDES :=
-
-SOURCE_DIRS := .
-
-CFLAGS   += -Wall -O2 -fomit-frame-pointer -Wextra -Wpedantic --std=c99 \
-            $(INCLUDES)
-
-CFILES   := $(foreach dir, $(SOURCE_DIRS), $(wildcard $(dir)/*.c))
-
-OBJECTS  := $(CFILES:.c=.o)
+# Targets
+# -------
 
 .PHONY: all clean install
 
-all: $(TARGET)
+all: packer
 
-$(TARGET): $(OBJECTS)
-	$(LD) $(LDFLAGS) $^ $(LIBPATHS) $(LIBS) -o $@
+packer: main.c
+	$(V)$(HOSTCC) -Wall -Wextra -std=gnu11 -O3 -lz -o $@ $<
 
 clean:
-	-rm -f $(TARGET) $(OBJECTS)
+	rm -rf packer
+
+INSTALLDIR	?= /opt/scds2_toolchain/tools/packer
+INSTALLDIR_ABS	:= $(abspath $(INSTALLDIR))
 
 install: all
-	-mkdir $(SCDS2_TOOLS)/tools
-	cp $(TARGET) $(SCDS2_TOOLS)/tools
+	@echo "  INSTALL $(INSTALLDIR_ABS)"
+	@test $(INSTALLDIR_ABS)
+	$(V)$(RM) $(INSTALLDIR_ABS)
+	$(V)$(INSTALL) -d $(INSTALLDIR_ABS)
+	$(V)$(INSTALL) $(STRIP) -m $(BINMODE) packer $(INSTALLDIR_ABS)
+	$(V)$(CP) COPYING $(INSTALLDIR_ABS)
