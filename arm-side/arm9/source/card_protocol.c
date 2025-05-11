@@ -94,10 +94,10 @@ void fatal_link_error(const char* format, ...)
 
 	set_sub_text();
 	consoleClear();
-	iprintf("DS-Supercard link error:\n\n");
+	printf("DS-Supercard link error:\n\n");
 
 	va_start(ap, format);
-	viprintf(format, ap);
+	vprintf(format, ap);
 	va_end(ap);
 
 	irqDisable(IRQ_VBLANK | IRQ_CARD_LINE);
